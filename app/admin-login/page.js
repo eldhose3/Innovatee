@@ -10,11 +10,17 @@ export default function AdminLogin() {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    // ✅ Updated login credentials
-    const validEmail = 'admin@innovate.uk';
-    const validPassword = 'innovate123';
+    // ✅ Allowed admin credentials
+    const validCredentials = [
+      { email: 'admin@innovate.uk', password: 'innovate123' },
+      { email: 'eldhose@innovate.uk', password: 'Eldhose@34' }
+    ];
 
-    if (email === validEmail && password === validPassword) {
+    const isValid = validCredentials.some(
+      (cred) => cred.email === email && cred.password === password
+    );
+
+    if (isValid) {
       localStorage.setItem('admin-auth', 'true');
       router.push('/admin');
     } else {
