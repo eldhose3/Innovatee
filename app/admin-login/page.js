@@ -7,26 +7,25 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = (e) => {
-    e.preventDefault();
+  const handleLogin = async (e) => {
+  e.preventDefault();
 
-    // ✅ Allowed admin credentials
-    const validCredentials = [
-      { email: 'admin@innovate.uk', password: 'innovate123' },
-      { email: 'eldhose@innovate.uk', password: 'Eldhose@34' }
-    ];
+  const res = await fetch('/api/admin-login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
 
-    const isValid = validCredentials.some(
-      (cred) => cred.email === email && cred.password === password
-    );
+  const result = await res.json();
 
-    if (isValid) {
-      localStorage.setItem('admin-auth', 'true');
-      router.push('/admin');
-    } else {
-      alert('Invalid login ID or password');
-    }
-  };
+  if (result.success) {
+    localStorage.setItem('admin-auth', 'true');
+    router.push('/admin');
+  } else {
+    alert('Invalid login ID or password');
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 to-white flex items-center justify-center">
