@@ -10,9 +10,9 @@ export default function AdminLogin() {
   const handleLogin = (e) => {
     e.preventDefault();
 
-    // 👇 Define valid login credentials here:
-    const validEmail = 'admin@journai.uk';
-    const validPassword = 'journai123';
+    // ✅ Updated login credentials
+    const validEmail = 'admin@innovate.uk';
+    const validPassword = 'innovate123';
 
     if (email === validEmail && password === validPassword) {
       localStorage.setItem('admin-auth', 'true');
@@ -34,7 +34,7 @@ export default function AdminLogin() {
               value={email}
               required
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@journai.uk"
+              placeholder="admin@innovate.uk"
               className="w-full p-2 border border-gray-300 rounded-md mt-1"
             />
           </div>
