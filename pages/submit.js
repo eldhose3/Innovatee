@@ -1,61 +1,67 @@
-// pages/api/submit.js
-import fs from 'fs';
-import path from 'path';
-import nodemailer from 'nodemailer';
+// pages/submit.js
+import { useState } from 'react';
 
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const filePath = path.join(process.cwd(), 'data', 'submissions.json');
-    const newSubmission = req.body;
+export default function Submit() {
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    idea: '',
+    stage: '',
+    sector: '',
+    techType: '',
+    visaStatus: ''
+  });
 
-    // Read existing data
-    let data = [];
-    if (fs.existsSync(filePath)) {
-      const fileData = fs.readFileSync(filePath);
-      data = JSON.parse(fileData);
-    }
+  const [message, setMessage] = useState('');
 
-    // Add new submission
-    data.push(newSubmission);
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-    // Write updated data
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    });
 
-    // Send email to admin
-    try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'eldhosejohny100@gmail.com',
-          pass: 'qwtr vrxz rlbx uztu'
-        }
+    const data = await res.json();
+    if (res.ok) {
+      setMessage('🎉 Submitted successfully!');
+      setForm({
+        name: '',
+        email: '',
+        idea: '',
+        stage: '',
+        sector: '',
+        techType: '',
+        visaStatus: ''
       });
-
-      const mailOptions = {
-        from: 'eldhosejohny100@gmail.com',
-        to: 'eldhosejohny100@gmail.com',
-        subject: 'New Idea Submission',
-        text: `
-New Idea Submitted
-
-Name: ${newSubmission.name}
-Email: ${newSubmission.email}
-Idea: ${newSubmission.idea}
-Stage: ${newSubmission.stage}
-Sector: ${newSubmission.sector}
-Tech or Non-Tech: ${newSubmission.techOrNonTech}
-Visa Status: ${newSubmission.visaStatus}
-        `,
-      };
-
-      await transporter.sendMail(mailOptions);
-      console.log('Email sent successfully');
-    } catch (error) {
-      console.error('Error sending email:', error);
+    } else {
+      setMessage('❌ Submission failed: ' + data.message);
     }
+  };
 
-    res.status(200).json({ message: 'Submission successful and email sent.' });
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
-  }
+  return (
+    <div style={{ padding: '2rem' }}>
+      <h1>Submit Your Idea</h1>
+      <form onSubmit={handleSubmit}>
+        {['name', 'email', 'idea', 'stage', 'sector', 'techType', 'visaStatus'].map((field) => (
+          <div key={field}>
+            <label>{field}</label><br />
+            <input
+              name={field}
+              value={form[field]}
+              onChange={handleChange}
+              required
+              style={{ marginBottom: '1rem', width: '100%' }}
+            /><br />
+          </div>
+        ))}
+        <button type="submit">Submit</button>
+      </form>
+      {message && <p style={{ marginTop: '1rem' }}>{message}</p>}
+    </div>
+  );
 }

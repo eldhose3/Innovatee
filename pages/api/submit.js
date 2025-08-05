@@ -1,65 +1,58 @@
-// ✅ File: /pages/submit.js (Frontend only)
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import Navbar from '@/components/Navbar';
+// pages/api/submit.js
+import fs from 'fs';
+import path from 'path';
+import nodemailer from 'nodemailer';
 
-export default function Submit() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    idea: '',
-    stage: '',
-    sector: '',
-    techType: '',
-    visaStatus: '',
-  });
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  try {
+    const submission = req.body;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const res = await fetch('/api/submit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
+    // Save to local JSON file
+    const dataDir = path.join(process.cwd(), 'data');
+    const filePath = path.join(dataDir, 'submissions.json');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+
+    let submissions = [];
+    if (fs.existsSync(filePath)) {
+      const fileData = fs.readFileSync(filePath, 'utf8');
+      submissions = JSON.parse(fileData || '[]');
+    }
+
+    submissions.push(submission);
+    fs.writeFileSync(filePath, JSON.stringify(submissions, null, 2));
+
+    // Send email notification
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
     });
 
-    if (res.ok) {
-      router.push('/thank-you');
-    } else {
-      alert('Submission failed. Please try again.');
-    }
-  };
+    await transporter.sendMail({
+      from: `"Innovate" <${process.env.SMTP_USER}>`,
+      to: process.env.RECEIVER_EMAIL,
+      subject: '🚀 New Idea Submission',
+      text: `
+New Idea Submitted:
+Name: ${submission.name}
+Email: ${submission.email}
+Idea: ${submission.idea}
+Stage: ${submission.stage}
+Sector: ${submission.sector}
+Tech/Non-Tech: ${submission.techType}
+Visa: ${submission.visaStatus}
+      `
+    });
 
-  return (
-    <>
-      <Head>
-        <title>Submit Your Idea | Innovate</title>
-      </Head>
-      <Navbar />
-      <main className="max-w-2xl mx-auto px-4 py-16">
-        <h1 className="text-3xl font-bold mb-6 text-center text-blue-600">Submit Your Idea</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="text" name="name" placeholder="Full Name" required className="w-full p-3 border rounded" onChange={handleChange} />
-          <input type="email" name="email" placeholder="Email" required className="w-full p-3 border rounded" onChange={handleChange} />
-          <textarea name="idea" placeholder="Your Idea" required className="w-full p-3 border rounded" onChange={handleChange}></textarea>
-          <input type="text" name="stage" placeholder="Stage of Development" required className="w-full p-3 border rounded" onChange={handleChange} />
-          <input type="text" name="sector" placeholder="Sector" required className="w-full p-3 border rounded" onChange={handleChange} />
-          <select name="techType" required className="w-full p-3 border rounded" onChange={handleChange}>
-            <option value="">Tech or Non-Tech?</option>
-            <option value="Tech">Tech</option>
-            <option value="Non-Tech">Non-Tech</option>
-          </select>
-          <input type="text" name="visaStatus" placeholder="Visa Status" required className="w-full p-3 border rounded" onChange={handleChange} />
-          <button type="submit" className="w-full p-3 bg-orange-500 text-white font-bold rounded hover:bg-orange-600 transition">Submit Idea</button>
-        </form>
-      </main>
-    </>
-  );
+    return res.status(200).json({ message: 'Submission successful' });
+  } catch (err) {
+    console.error('Submission error:', err);
+    return res.status(500).json({ message: 'Something went wrong.' });
+  }
 }
