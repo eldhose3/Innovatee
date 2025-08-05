@@ -1,86 +1,84 @@
-// pages/admin/dashboard.js
-import { useEffect, useState } from 'react';
+// /pages/admin/dashboard.js
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Dashboard() {
+  const [ideas, setIdeas] = useState([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [password, setPassword] = useState('');
   const router = useRouter();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [submissions, setSubmissions] = useState([]);
 
-  const [login, setLogin] = useState({
-    email: '',
-    password: '',
-  });
+  useEffect(() => {
+    const isAuthenticated = sessionStorage.getItem('adminLoggedIn');
+    if (isAuthenticated === 'true') {
+      setLoggedIn(true);
+      fetchIdeas();
+    }
+  }, []);
+
+  const fetchIdeas = async () => {
+    const res = await fetch('/api/ideas');
+    const data = await res.json();
+    setIdeas(data.reverse());
+  };
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (
-      login.email === 'eldhose@innovate.uk' &&
-      login.password === 'Eldhose@34'
+      password === 'Eldhose@34' &&
+      document.getElementById('email').value === 'eldhose@innovate.uk'
     ) {
-      setAuthenticated(true);
+      sessionStorage.setItem('adminLoggedIn', 'true');
+      setLoggedIn(true);
+      fetchIdeas();
     } else {
-      alert('Invalid credentials');
+      alert('Incorrect login');
     }
-  };
-
-  const fetchSubmissions = async () => {
-    const res = await fetch('/api/get-submissions');
-    const data = await res.json();
-    setSubmissions(data);
   };
 
   const handleDelete = async (index) => {
+    const confirmed = confirm('Are you sure you want to delete this idea?');
+    if (!confirmed) return;
+
     const res = await fetch('/api/delete', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ index }),
     });
 
-    const result = await res.json();
     if (res.ok) {
-      alert('Deleted successfully!');
-      fetchSubmissions();
+      fetchIdeas();
     } else {
-      alert(result.message || 'Delete failed');
+      alert('Failed to delete idea');
     }
   };
 
-  useEffect(() => {
-    if (authenticated) {
-      fetchSubmissions();
-    }
-  }, [authenticated]);
-
-  if (!authenticated) {
+  if (!loggedIn) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
         <form
           onSubmit={handleLogin}
-          className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4"
+          className="bg-white p-6 rounded shadow-md w-full max-w-sm"
         >
-          <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">
-            Admin Login
-          </h2>
+          <h2 className="text-2xl font-bold mb-4 text-center">Admin Login</h2>
           <input
+            id="email"
             type="email"
             placeholder="Email"
-            value={login.email}
-            onChange={(e) => setLogin({ ...login, email: e.target.value })}
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
+            required
+            className="w-full p-2 border border-gray-300 rounded mb-3"
           />
           <input
             type="password"
             placeholder="Password"
-            value={login.password}
-            onChange={(e) => setLogin({ ...login, password: e.target.value })}
-            className="mb-4 w-full p-2 border border-gray-300 rounded"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded mb-3"
           />
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700"
+            className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600 transition"
           >
             Login
           </button>
@@ -91,38 +89,29 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <h2 className="text-3xl font-bold text-center text-blue-800 mb-8">
-        Submitted Ideas
-      </h2>
-
-      {submissions.length === 0 ? (
-        <p className="text-center text-gray-600">No submissions yet.</p>
-      ) : (
-        <div className="grid gap-4">
-          {submissions.map((submission, index) => (
-            <div
-              key={index}
-              className="bg-white p-6 rounded shadow flex justify-between items-start"
+      <h1 className="text-3xl font-bold mb-6 text-center">📋 Submitted Ideas</h1>
+      <div className="grid gap-4 max-w-4xl mx-auto">
+        {ideas.map((idea, index) => (
+          <div key={index} className="bg-white p-4 rounded shadow-md">
+            <p><strong>Full Name:</strong> {idea.fullName}</p>
+            <p><strong>Email:</strong> {idea.email}</p>
+            <p><strong>Idea:</strong> {idea.idea}</p>
+            <p><strong>Stage:</strong> {idea.stage}</p>
+            <p><strong>Sector:</strong> {idea.sector}</p>
+            <p><strong>Tech/Non-Tech:</strong> {idea.techType}</p>
+            <p><strong>Visa Status:</strong> {idea.visaStatus}</p>
+            <button
+              onClick={() => handleDelete(index)}
+              className="mt-4 bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded"
             >
-              <div>
-                <p><strong>Name:</strong> {submission.name}</p>
-                <p><strong>Email:</strong> {submission.email}</p>
-                <p><strong>Idea:</strong> {submission.idea}</p>
-                <p><strong>Stage:</strong> {submission.stage}</p>
-                <p><strong>Sector:</strong> {submission.sector}</p>
-                <p><strong>Type:</strong> {submission.techNonTech}</p>
-                <p><strong>Visa:</strong> {submission.visaStatus}</p>
-              </div>
-              <button
-                onClick={() => handleDelete(index)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+              Delete
+            </button>
+          </div>
+        ))}
+        {ideas.length === 0 && (
+          <p className="text-center text-gray-600">No ideas submitted yet.</p>
+        )}
+      </div>
     </div>
   );
 }
